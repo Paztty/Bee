@@ -208,6 +208,7 @@ void led_blink (uint32_t led_tick)
 
 }
 
+// tao them cho vui vay thoi ak 
 
 
 void notfication(uint32_t notfication_tick)
