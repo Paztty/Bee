@@ -1,10 +1,10 @@
 --cpu Cortex-M3
 "bee\startup_stm32f103xb.o"
-"bee\main_activity.o"
 "bee\ads1220.o"
 "bee\fonts.o"
 "bee\ssd1306.o"
 "bee\samplefilter.o"
+"bee\main_activity.o"
 "bee\main.o"
 "bee\stm32f1xx_it.o"
 "bee\stm32f1xx_hal_msp.o"

@@ -1,4 +1,4 @@
-bee\main_activity.o: Main_activity.c
+bee\main_activity.o: ..\User_main_activity\Main_activity.c
 bee\main_activity.o: ..\User_main_activity\main_activity.h
 bee\main_activity.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h
 bee\main_activity.o: ../Inc/stm32f1xx_hal_conf.h

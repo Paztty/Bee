@@ -338,7 +338,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F103xB,USE_HAL_DRIVER,STM32F103xB</Define>
               <Undefine></Undefine>
-              <IncludePath>../Inc;                        ../Drivers/STM32F1xx_HAL_Driver/Inc;                        ../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;                        ../Drivers/CMSIS/Device/ST/STM32F1xx/Include;                        ../Drivers/CMSIS/Include;                        ..\User_main_activity</IncludePath>
+              <IncludePath>../Inc;                                    ../Drivers/STM32F1xx_HAL_Driver/Inc;                                    ../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;                                    ../Drivers/CMSIS/Device/ST/STM32F1xx/Include;                                    ../Drivers/CMSIS/Include;                                    ..\User_main_activity</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -393,11 +393,6 @@
           <GroupName>Main_activity</GroupName>
           <Files>
             <File>
-              <FileName>Main_activity.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Main_activity.c</FilePath>
-            </File>
-            <File>
               <FileName>main_activity.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\User_main_activity\main_activity.h</FilePath>
@@ -426,6 +421,11 @@
               <FileName>SampleFilter.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\User_main_activity\SampleFilter.c</FilePath>
+            </File>
+            <File>
+              <FileName>Main_activity.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\User_main_activity\Main_activity.c</FilePath>
             </File>
           </Files>
         </Group>

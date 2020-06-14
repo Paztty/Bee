@@ -56,14 +56,14 @@
 #define DR_600SPS   0xA0
 #define DR_1000SPS  0xC0
 
-#define PGA_GAIN_1   0x00
-#define PGA_GAIN_2   0x02
-#define PGA_GAIN_4   0x04
-#define PGA_GAIN_8   0x06
-#define PGA_GAIN_16  0x08
-#define PGA_GAIN_32  0x0A
-#define PGA_GAIN_64  0x0C
-#define PGA_GAIN_128 0x0E
+#define PGA_GAIN_1   		0x00
+#define PGA_GAIN_2   		0x02
+#define PGA_GAIN_4   		0x04
+#define PGA_GAIN_8  	 	0x06
+#define PGA_GAIN_16  		0x08
+#define PGA_GAIN_32  		0x0A
+#define PGA_GAIN_64  		0x0C
+#define PGA_GAIN_128 		0x0E
 
 #define MUX_AIN0_AIN1   0x00
 #define MUX_AIN0_AIN2   0x10
@@ -114,30 +114,33 @@ typedef struct
 
 
 uint8_t 		SPI_TransferData(uint8_t data);
-void 			delayMicroseconds(uint32_t time);
+void 				delayMicroseconds(uint32_t time);
 
-void 			ADS1220_init(void);
-void 			ADS1220_Command(unsigned char data_in);
+void 				ADS1220_init(void);
+void 				ADS1220_Command(unsigned char data_in);
 
-void 			ADS1220_Reset(void);
-void			ADS1220_Start(void);
+void 				ADS1220_Reset(void);
+void				ADS1220_Start(void);
 uint8_t  		ADS1220_readRegister(uint8_t address);
-void 			ADS1220_writeRegister(uint8_t address, uint8_t value);
+void 				ADS1220_writeRegister(uint8_t address, uint8_t value);
 
-void 		 	ADS1220_select_mux_channels(int channels_conf);
+void 		 		ADS1220_select_mux_channels(int channels_conf);
 int32_t	 		ADS1220_Read_WaitForData(void);
 int32_t  		ADS1220_Read_SingleShot_SingleEnded_WaitForData(uint8_t channel_no);
 
-void		 	ADS1220_set_pga_gain(int pgagain);
-void 		 	ADS1220_set_data_rate(int datarate);
-void 		 	ADS1220_set_conv_mode_single_shot(void);
+void		 		ADS1220_set_pga_gain(int pgagain);
+void 		 		ADS1220_set_data_rate(int datarate);
+void 		 		ADS1220_set_conv_mode_single_shot(void);
 void     		ADS1220_set_conv_mode_continuous(void);
 
 float    		ADS1220_convertToMilliV(int32_t i32data);
 void    		ADS1220_Continuous_conversion_mode_ON(void);
 
-void 		 	ADS1220_PGA_OFF(void);
-void 			ADS1220_PGA_ON(void);	
-	
+void 		 		ADS1220_PGA_OFF(void);
+void 				ADS1220_PGA_ON(void);	
+
+float     	ADS1220_Calib(float NoLoad_mVol, float Load_mVol, float input_Meansure);
+float 			ADS1220_ConverToGram(float input_milivol, float step_size, float NoLoad_mVol);
+
 #endif
 

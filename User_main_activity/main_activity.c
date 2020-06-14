@@ -5,22 +5,32 @@
 #include "ssd1306.h"
 #include "SampleFilter.h"
 
-#include "STM32F1xx"
+
+#define NOS 50
+// #define Fillter_order 5
+
 
 extern UART_HandleTypeDef huart1;
 extern SPI_HandleTypeDef hspi1;
 
 extern ADS1220_t ADS1220;
-uint32_t noLoad, fullLoad, step_load;
 
-uint32_t led_sevice_freq = 1;
-uint32_t notfication_sevice_freq = 500;
-uint32_t get_adc_sevice_freq = 100;
+uint32_t led_sevice_freq = 1000;
+uint32_t notfication_sevice_freq = 100;
+uint32_t get_adc_sevice_freq = 10;
 
-SampleFilter f;
-uint8_t t_filter_f = 0;
-float acc;
+uint32_t ADS_SPS, SSD1306_FPS, uart_fl,ADS_fl;
+
+uint8_t bt_counter[] = {0,0,0}, stable_fl = 1, stable_mode;
+
+float_t acc, acc_show, acc_show_pr, noload;
 char notfication_text[10];
+float_t can_chinh[NOS], step_size, window_value;
+
+float Fillter_input[Fillter_order] = {1,1,1,1,1,1}, Fillter_output[Fillter_order] = {0,0,0,0,0,0};
+float Fillter_HSa[Fillter_order] = {/*b = */ -2.49631017988277e-18	-0.00785585409502368,	0.0401711752634344,	-0.103314801557551,	0.170762156469434,	0.800474647839413,	0.170762156469434,	-0.103314801557551,	0.0401711752634344,	-0.00785585409502368,	-2.49631017988277e-18};
+
+uint32_t calender[4];
 
 
 
@@ -57,7 +67,7 @@ void reverse(char* str, int len)
 		} 
 } 
 
-
+// Sample Convert Int to String ------------------------------------------------
 int intToStr(int x, char str[], int d) 
 { 
 		int i = 0; 
@@ -76,8 +86,12 @@ int intToStr(int x, char str[], int d)
 		return i; 
 } 
 
+
+// Sample Convert Float to String ------------------------------------------------
 void ftoa(float n, char* res, int afterpoint) 
-	{ 
+	{
+  if (n < 0)
+	n = 0;
 	// Extract integer part 
 	int ipart = (int)n; 
 
@@ -98,133 +112,299 @@ void ftoa(float n, char* res, int afterpoint)
 			fpart = fpart * pow(10, afterpoint); 
 
 			intToStr((int)fpart, res + i + 1, afterpoint); 
-		} 
+		}		
 } 
 // END stdio with UART1 --------------------------------------------------------
 
+void main_calendar()
+	{
+		for(int i = 0; i < 4; i++)
+				calender[i]++;
+	}
+
+
 
 void init_system()
-{
-	int c;
-
-	ssd1306_Init();
-	
-	ssd1306_Fill(Black);
-	ssd1306_SetCursor(10,32);
-	ssd1306_WriteString("Strarting...", Font_7x10 , White);
-	ssd1306_UpdateScreen();
-
-	ADS1220.DRDY_PIN = GPIO_PIN_0;
-	ADS1220.DRDY_PORT = GPIOB;
-	ADS1220.CS_PIN = GPIO_PIN_4;
-	ADS1220.CS_PORT = GPIOA;
-	ADS1220.hspi = hspi1;
-
-	ssd1306_Fill(Black);
-	ssd1306_SetCursor(10,32);
-	ssd1306_WriteString("Starting ADS....", Font_7x10 , White);
-	ssd1306_UpdateScreen();
-
-	ADS1220_init();
-	
-	ADS1220_set_data_rate(DR_1000SPS);
-	ADS1220_set_pga_gain(PGA_GAIN_128);
-	ADS1220_select_mux_channels(MUX_AIN0_AIN1);
-	ADS1220_Start();
-	HAL_Delay(1000);
-	
-	ssd1306_Fill(Black);
-	ssd1306_SetCursor(10,32);
-	ssd1306_WriteString("Starting Filter....", Font_7x10 , White);
-	ssd1306_UpdateScreen();	
-	
-	SampleFilter_init(&f);
-	
-	ssd1306_SetCursor(10,32);
-	ssd1306_WriteString("Load buffer......", Font_7x10 , White);
-	ssd1306_UpdateScreen();		
+{	
+		ssd1306_Init();
+		ssd1306_Fill(Black);
+		ssd1306_SetCursor(10,32);
+	  	ssd1306_WriteString("Strarting...", Font_7x10 , White);
+		ssd1306_UpdateScreen();
 		
-	for(c = 0; c < SAMPLEFILTER_TAP_NUM; c++)
+		HAL_Delay(1000);
+	
+		ssd1306_Fill(Black);
+		ssd1306_SetCursor(10,10);
+	  	ssd1306_WriteString("DO NOT PUT ANY", Font_7x10 , White);
+		ssd1306_SetCursor(10,25);
+	  	ssd1306_WriteString("THINGS ON THE", Font_7x10 , White);
+		ssd1306_SetCursor(10,40);
+	  	ssd1306_WriteString("SCALE", Font_7x10 , White);
+		ssd1306_UpdateScreen();
+		HAL_Delay(1000);
+	
+		ADS1220.DRDY_PIN = GPIO_PIN_3;
+		ADS1220.DRDY_PORT = GPIOA;
+		ADS1220.CS_PIN = GPIO_PIN_4;
+		ADS1220.CS_PORT = GPIOA;
+	  	ADS1220.hspi = hspi1;
+
+		ssd1306_Fill(Black);
+		ssd1306_SetCursor(10,32);
+	  	ssd1306_WriteString("Starting ....", Font_7x10 , White);
+		ssd1306_UpdateScreen();
+		
+		ADS1220_init();
+
+		ADS1220_set_data_rate(DR_1000SPS);
+    	ADS1220_set_pga_gain(PGA_GAIN_128);
+		ADS1220_select_mux_channels(MUX_AIN0_AIN1);
+		ADS1220_Start();
+		HAL_Delay(1000);
+		
+		for (int i = 0; i < 2*NOS ; i++)
 		{
-			get_adc();
-			HAL_Delay(100);
-			ssd1306_SetCursor(60,43);
-			ftoa((float)c/SAMPLEFILTER_TAP_NUM*100, notfication_text,1);
-			ssd1306_WriteString(notfication_text, Font_7x10 , White);	
-			ssd1306_WriteString(" %", Font_7x10 , White);
-			ssd1306_UpdateScreen();		
+			get_adc(1);
+			ADS_fl = 0;
+			HAL_Delay(10);
 		}
-	
+
+		for (int i = 0; i < Fillter_order; i++)
+		{
+			Fillter_input[i] = adc_read();
+			Fillter_output[i] = Fillter_input[i];
+		}
+		
+
+		noload = acc + 0.1;
+		step_size = ADS1220_Calib(noload, 66.845062, 143);
 					
-	HAL_Delay(100);
-	ssd1306_Fill(Black);
-	ssd1306_SetCursor(10,32);
-	ssd1306_WriteString("All done!", Font_7x10 , White);
-	ssd1306_UpdateScreen();		
-	HAL_Delay(1000);
-	
-	ssd1306_Fill(Black);
-	ssd1306_SetCursor(5,5);
-	ssd1306_WriteString("Loadcell milivol:", Font_7x10 , White);
-	ssd1306_SetCursor(1,50);
-	ssd1306_WriteString("SPS:1000 ", Font_7x10 , White);
-	//ssd1306_SetCursor(1,50);
-	ssd1306_WriteString("Gain:128", Font_7x10 , White);
-	ssd1306_UpdateScreen();			
+					
+		ssd1306_Fill(Black);
+		ssd1306_SetCursor(10,32);
+	  	ssd1306_WriteString("All done!", Font_7x10 , White);
+		ssd1306_UpdateScreen();		
+		HAL_Delay(1000);
+		
+		
+		ssd1306_Fill(Black);
+		ssd1306_SetCursor(5,5);
+	  	ssd1306_WriteString("WEIGHT IN GAM:", Font_7x10 , White);
+		ssd1306_SetCursor(2,50);
+	  	ssd1306_WriteString("10th order fillter", Font_7x10 ,White );
+		ssd1306_SetCursor(0,20);
+		ssd1306_WriteString( "                                 ", Font_11x18, Black );
+		ssd1306_UpdateScreen();			
 		
 		
   //Configure for differential measurement between AIN0 and AIN1
-
   //Start continuous conversion mode
 
 }
 
-void main_activity(uint32_t tick)	
+void main_activity()	
 {
-	printf("RUNNING....\r\n");
-	notfication(tick);
+	get_adc(calender[3]);
+	notfication(calender[1]);
+	led_blink(calender[0]);
+	dataPerSencond(calender[2]);
 }
 
-void get_adc()
+void get_adc(uint32_t get_adc_tick)
 {
-	t_filter_f = 1;
-	uint32_t data;
-	float data2;
-    data = ADS1220_Read_WaitForData();
+uint32_t adc_value;
+	
+	if(get_adc_tick <= get_adc_sevice_freq && ADS_fl == 0)
+	{
+		
+		adc_value = ADS1220_Read_WaitForData();
+		
+		if (adc_value != 0){
 
-	data2 = ADS1220_convertToMilliV(data);
-	SampleFilter_put(&f, (double)data2);
-	acc = SampleFilter_get(&f) + 200;
-	t_filter_f = 0;
+				acc = ADS1220_convertToMilliV(adc_value);
+ 	
+			for(int i = 0; i < NOS - 1 ; i++)
+				{
+				can_chinh [i] = can_chinh[i+1];
+				}		
+				can_chinh[NOS-1] = acc;
+				acc = 0;
+			
+			for(int i = 0; i < NOS ; i++)
+				{
+				acc = acc + can_chinh[i];
+				}	
+				acc = acc / NOS;
+			}	
+		
+		if (stable_mode == 0){
+			window_value = 1 / (6 + 2/(acc_show_pr - noload));
+			if(fabs(acc - acc_show_pr) > window_value && stable_fl == 1 )	
+				{
+					acc_show_pr = acc;
+				}
+			
+			if( stable_fl == 0 )
+				{
+					if(fabs(acc - acc_show_pr) <= 0.01 || fabs(acc - acc_show_pr) > 2)
+					{
+							acc_show_pr = acc;
+					}
+					stable_fl = 1;
+				}
+			//acc_show_pr = Fillter();
+			}
+		
+		if( stable_mode == 2 )
+		{
+			acc_show_pr = ADS1220_convertToMilliV(adc_value);
+		}
+		
+		if(stable_mode == 1 )
+		{
+			acc_show_pr = acc;
+		}
+
+		
+		ADS_SPS++;
+		ADS_fl = 1;
+		
+	}
+	
+	if(get_adc_tick > get_adc_sevice_freq)
+	{
+			ADS_fl = 0;
+			calender[3] = 1;
+	}
 }
 
 
 void led_blink (uint32_t led_tick)
 {
-	if (led_tick % led_sevice_freq == 0)
+	if (led_tick < 10)
 	{
-		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_RESET);
 	}
-
+	
+	if (led_tick > 10)
+	{
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_SET);
+	}
+	if (led_tick > 500)
+		calender[0] = 0;
+	
 }
-
-// tao them cho vui vay thoi ak 
-
 
 void notfication(uint32_t notfication_tick)
 {
-
-	if(t_filter_f == 0)
-		{
 	char data2[10];
-	if (notfication_tick % notfication_sevice_freq == 0)
+	
+	if (notfication_tick > notfication_sevice_freq)
 	{
-		ssd1306_SetCursor(30,20);
-		ftoa(acc, data2, 4);
-		ssd1306_WriteString( data2, Font_7x10 , White);
-		ssd1306_WriteString( " mV          ", Font_7x10, White );
-		ssd1306_UpdateScreen();	
+	calender[1] = 0;
+  SSD1306_FPS = 0;
+	}
+		if (notfication_tick < notfication_sevice_freq && SSD1306_FPS == 0)
+	{
+		
+		
+		//acc_show = acc;	
+		acc_show = ADS1220_ConverToGram(acc_show_pr, step_size, noload);			
+		
+		ssd1306_SetCursor(10,20);
+		
+		ftoa(acc_show, data2, 4);
+		//intToStr(acc_show , data2, 5);
+		
+	  	ssd1306_WriteString( data2, Font_11x18 , Black);
+		ssd1306_WriteString( " Gam    ", Font_11x18, Black );	
+
+	  	ssd1306_SetCursor(2,50);
+		switch (stable_mode)
+		{
+			case 0:
+			{
+				  ssd1306_WriteString("10th order fillter                    ", Font_7x10 ,White );
+			}
+			case 1:
+			{
+				  ssd1306_WriteString("2th order fillter                    ", Font_7x10 ,White );
+			}
+			case 2:
+			{
+				  ssd1306_WriteString("No Fillter                     ", Font_7x10 ,White );
+			}
+		}
+//		ssd1306_UpdateScreen();
+		
+		ssd1306_UpdateScreen();
+		SSD1306_FPS = 1;
 	}
 }
-}
 
+void dataPerSencond(uint32_t tick)
+{
+		if(tick < led_sevice_freq && uart_fl == 0)
+			{
+			 printf("Tick: %d ------ noload value: %f  ------  value windown: %f ---- Weight milivol: %f --- Step size: %f \r\n",HAL_GetTick(), noload ,window_value , acc, step_size);
+				// stable_fl = 0;
+			uart_fl = 1;
+				// ADS_SPS = 0;	
+				printf("\nInput array data: ");
+			for (uint8_t i = 0; i < Fillter_order; i++)
+			{
+				printf(" %f,  ", Fillter_input[i]);
+			}
+			printf("\noutput array data: ");
+			for (uint8_t i = 0; i < Fillter_order; i++)
+			{
+				printf(" %f,  ", Fillter_output[i]);
+			}
+
+			}
+		if(tick > led_sevice_freq)
+		{			
+			calender[2] = 0;
+			uart_fl = 0;
+		}
+}
+	
+float adc_read()
+{
+	uint32_t adc_value = ADS1220_Read_WaitForData();
+	while(adc_value == 0)
+		{
+			adc_value = ADS1220_Read_WaitForData();
+		}
+			return ADS1220_convertToMilliV(adc_value);		
+}	
+
+float Fillter()
+{
+	float equal;
+	// update input sample
+	for (uint8_t i = Fillter_order - 1 ; i > 0; i--)
+	{
+		Fillter_input[i] = Fillter_input[i - 1];
+	}	
+	Fillter_input[0] = adc_read();
+	
+	// butterworld fillter calculator
+	equal = (Fillter_input[0] * Fillter_HSa[0]);
+	for (uint8_t i = 1; i < Fillter_order; i++)
+	{
+		equal = equal + (Fillter_input[i] * Fillter_HSa[i]);// - (Fillter_output[i] * Fillter_HSa[0][i]);
+	}
+	
+	//update output equal
+	for (uint8_t i = Fillter_order - 1 ; i > 0; i--)
+	{
+		Fillter_output[i] = Fillter_output[i - 1];
+	}
+	Fillter_output[0] = equal;
+	
+	return Fillter_output[0];
+}	

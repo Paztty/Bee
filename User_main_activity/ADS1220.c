@@ -177,22 +177,20 @@ int32_t ADS1220_Read_WaitForData()
     int32_t mResult32=0;
     long int bit24;
 
-		
-    if(HAL_GPIO_ReadPin(ADS1220.DRDY_PORT, ADS1220.DRDY_PIN) == LOW)             //        Wait for DRDY to transition low
+    if( HAL_GPIO_ReadPin(ADS1220.DRDY_PORT, ADS1220.DRDY_PIN) == LOW )      //Wait for DRDY to transition low
     {
-		HAL_GPIO_WritePin(ADS1220.CS_PORT, ADS1220.CS_PIN, LOW);
-		HAL_Delay(2);                       //Take CS low
+		HAL_GPIO_WritePin(ADS1220.CS_PORT, ADS1220.CS_PIN, LOW);                      //Take CS low
+		delayMicroseconds(5);
   	for (int i = 0; i < 3; i++)
   	{
           SPI_Buff[i] = SPI_TransferData(SPI_MASTER_DUMMY);
-  	}
-		HAL_Delay(2);   
+  	} 
+		delayMicroseconds(5);
 		HAL_GPIO_WritePin(ADS1220.CS_PORT, ADS1220.CS_PIN, HIGH);                //  Clear CS to high
 
         bit24 = SPI_Buff[0];
         bit24 = (bit24 << 8) | SPI_Buff[1];
-        bit24 = (bit24 << 8) | SPI_Buff[2];                                 // Converting 3 bytes to a 24 bit int
-
+        bit24 = (bit24 << 8) | SPI_Buff[2];                                  // Converting 3 bytes to a 24 bit int
         bit24= ( bit24 << 8 );
         mResult32 = ( bit24 >> 8 );                      // Converting 24 bit two's complement to 32 bit two's complement
     }
@@ -235,7 +233,7 @@ void delayMicroseconds(uint32_t time)
 {
         for (int i = 0; i <= time; i ++)
 					{
-						//__NOP;
+						__NOP;
 					}
 }
 
@@ -299,5 +297,17 @@ void ADS1220_Single_shot_mode_ON()
 
 float ADS1220_convertToMilliV(int32_t i32data)
 {
-    return (float)((i32data*VFSR*1000)/FULL_SCALE);
+  return (float)((i32data*VFSR*1000)/FULL_SCALE);
 }
+
+float ADS1220_Calib(float NoLoad_mVol, float Load_mVol, float input_Meansure)
+{
+  return (float)(input_Meansure / (Load_mVol - NoLoad_mVol ));
+}
+
+float ADS1220_ConverToGram(float input_milivol, float step_size, float NoLoad_mVol )
+{
+  return (float)((input_milivol - NoLoad_mVol) * step_size);
+}	
+
+

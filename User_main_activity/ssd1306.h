@@ -35,7 +35,7 @@
 //
 typedef enum {
 	Black = 0x00, // Black color, no pixel
-	White = 0x01  //Pixel is set. Color depends on LCD
+	White = 0x01  // Pixel is set. Color depends on LCD
 } SSD1306_COLOR;
 
 //
@@ -47,6 +47,8 @@ typedef struct {
 	uint8_t Inverted;
 	uint8_t Initialized;
 } SSD1306_t;
+
+
 
 //	Definition of the i2c port in main
 extern I2C_HandleTypeDef hi2c1;
